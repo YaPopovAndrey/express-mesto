@@ -15,5 +15,3 @@ app.use('/users', require('./routes/users'));
 app.listen(PORT, () => {
     console.log(`Слушаем порт: ${PORT}`);
 });
-
-
