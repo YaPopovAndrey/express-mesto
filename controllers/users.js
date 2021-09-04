@@ -8,7 +8,7 @@ module.exports.getUsers = (req, res) => {
         }
         return res.status(200).send(user)
     })
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch(err => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
 };
 
 module.exports.getUser = (req, res) => {
@@ -19,7 +19,7 @@ module.exports.getUser = (req, res) => {
         }
         return res.status(200).send(user)
     }) 
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch(err => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
 };
 
 module.exports.createUser = (req, res) => {
@@ -34,7 +34,7 @@ module.exports.createUser = (req, res) => {
                     .map((error) => error.message)
                     .join(", ")},`
             });
-        } return res.status(500).send({ message: err.message });
+        } return res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
     });
 };
 
@@ -56,7 +56,7 @@ module.exports.updateUser = (req, res) => {
         }
         return res.status(200).send(user)
     })
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch(err => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
 };
 
 module.exports.updateAvatar = (req, res) => {
@@ -76,5 +76,5 @@ module.exports.updateAvatar = (req, res) => {
         }
         return res.status(200).send(user)
     })
-    .catch(err => res.status(500).send({ message: err.message }));
+    .catch(err => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
 };

@@ -12,6 +12,7 @@ const cardShema = new mongoose.Schema({
         type: String,
     },
     owner: {
+        required: true,
         type: Object,
         ref: 'user',
     },
