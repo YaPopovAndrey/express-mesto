@@ -23,7 +23,9 @@ app.use((req, res, next) => {
 
 app.use(router);
 app.use(routerCard);
-
+app.use((req, res) => {
+  res.status(404).send({ message: '404 NotFound' })
+});
 
 app.listen(PORT, () => {
     console.log(`Слушаем порт: ${PORT}`);
