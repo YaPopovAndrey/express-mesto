@@ -1,4 +1,5 @@
 /* eslint-disable linebreak-style */
+const validator = require('validator');
 const User = require('../models/user');
 
 module.exports.getUsers = (req, res) => {
@@ -25,10 +26,20 @@ module.exports.getUser = (req, res) => {
 };
 
 module.exports.createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+  const validatorEmail = validator.isEmail(email);
 
-  User.create({ name, about, avatar })
-    .then((user) => res.status(201).send(user))
+  User.create({
+    name, about, avatar, email, password,
+  })
+    .then((user) => {
+      if (!validatorEmail) {
+        return res.status(400).send({ message: 'Неверно введен email' });
+      }
+      return res.status(201).send(user);
+    })
     .catch((err) => {
       if (err.name === 'ValidationError') {
         return res.status(400).send({
