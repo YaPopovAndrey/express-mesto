@@ -1,24 +1,30 @@
 /* eslint-disable linebreak-style */
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, 'test-super-key', { expiresIn: '7d' });
 
       res
-        .status(200)
-        .send({ token });
+        .cookie('jwt', token, {
+          maxAge: 36000 * 24 * 7,
+          httpOnly: true,
+          sameSite: true,
+        })
+        .send({ message: 'Авторизация успешна' });
     })
     .catch((err) => {
       res
         .status(401)
         .send({ message: err.message });
-    });
+    })
+    .catch(next);
 };
 
 module.exports.getUsers = (req, res) => {
@@ -27,8 +33,8 @@ module.exports.getUsers = (req, res) => {
     .catch((err) => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
 };
 
-module.exports.getUser = (req, res) => {
-  User.findById(req.params.userId)
+module.exports.getUser = (req, res, next) => {
+  User.findById(req.user._id)
     .then((user) => {
       if (!user) {
         return res.status(404).send({ message: 'Пользователя с таким ID не существует' });
@@ -41,7 +47,8 @@ module.exports.getUser = (req, res) => {
       } else {
         res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
       }
-    });
+    })
+    .catch(next);
 };
 
 module.exports.createUser = (req, res) => {
@@ -50,9 +57,14 @@ module.exports.createUser = (req, res) => {
   } = req.body;
   const validatorEmail = validator.isEmail(email);
 
-  User.create({
-    name, about, avatar, email, password,
-  })
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    }))
     .then((user) => {
       if (!validatorEmail) {
         return res.status(400).send({ message: 'Неверно введен email' });

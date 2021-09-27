@@ -1,0 +1,9 @@
+/* eslint-disable linebreak-style */
+class ConflictingRequest extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 409;
+  }
+}
+
+module.exports = ConflictingRequest;
