@@ -1,83 +1,90 @@
 /* eslint-disable linebreak-style */
+/* eslint-disable no-shadow */
 const Card = require('../models/card');
 
-module.exports.getCards = (req, res) => {
+const NotFound = require('../errors/NotFound');
+const BadRequest = require('../errors/BadRequest');
+const Forbidden = require('../errors/Forbidden');
+
+module.exports.getCards = (req, res, next) => {
   Card.find({})
     .then((card) => res.status(200).send(card))
-    .catch((err) => res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` }));
+    .catch(next);
 };
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
 
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(201).send(card))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({
-          message: `${Object.values(err.errors)
-            .map((error) => error.message)
-            .join(', ')},`,
-        });
-      } return res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
-    });
-};
-
-module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId, { new: true })
-    .then((card) => {
-      if (!card) {
-        res.status(404).send({ message: 'С данным ID карточек не обнаружено' });
-      } else {
-        res.status(200).send({ message: 'Карточка удалена' });
+        throw new BadRequest('Одно из обязательных полей не заполнено или заполнено с ошибкой');
       }
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Невалидный id' });
-      } else {
-        res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
-      }
-    });
+    .catch(next);
 };
 
-module.exports.likeCard = (req, res) => {
+module.exports.deleteCard = (req, res, next) => {
+  Card.findById(req.params.id)
+    .orFail(() => {
+      throw new NotFound('С данным ID карточек не обнаружено');
+    })
+    .then((card) => {
+      if (card.owner._id.toString() === req.user._id) {
+        Card.findByIdAndRemove(req.params.id)
+          .then((card) => {
+            res.send(card);
+          })
+          .catch((err) => {
+            if (err.name === 'CastError') {
+              throw new BadRequest('Невалидный id');
+            }
+          })
+          .catch(next);
+      } else {
+        throw new Forbidden('Нельзя удалить чужую карточку');
+      }
+      return res.status(200).send({ message: 'Карточка удалена' });
+    })
+    .catch(next);
+};
+
+module.exports.likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(req.params.cardId,
     { $addToSet: { likes: req.user._id } },
     { new: true })
     // eslint-disable-next-line consistent-return
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Данные некорректны' });
+        throw new NotFound('С данным ID карточек не обнаружено');
       } else {
         return res.status(200).send(card);
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Невалидный id' });
-      } else {
-        res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
+        throw new BadRequest('Невалидный id');
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.dislikeCard = (req, res) => {
+module.exports.dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(req.params.cardId,
     { $pull: { likes: req.user._id } },
     { new: true })
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Данные некорректны' });
+        throw new NotFound('С данным ID карточек не обнаружено');
       } else {
         res.status(200).send(card);
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Невалидный id' });
-      } else {
-        res.status(500).send({ message: `Ошибка:${err.name}:${err.message}` });
+        throw new BadRequest('Невалидный id');
       }
-    });
+    })
+    .catch(next);
 };
