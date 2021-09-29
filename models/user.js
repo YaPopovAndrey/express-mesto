@@ -21,6 +21,7 @@ const userShema = new mongoose.Schema({
     type: String,
     required: true,
     minlength: 8,
+    select: false,
   },
   name: {
     type: String,
@@ -45,7 +46,7 @@ const userShema = new mongoose.Schema({
 }, { versionKey: false });
 
 userShema.statics.findUserByCredentials = function (email, password) {
-  return this.findOne({ email })
+  return this.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
         return Promise.reject(new Unauthorized('Ошибка! Неверно введен email или пароль!'));
