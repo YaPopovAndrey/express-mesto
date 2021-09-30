@@ -1,18 +1,20 @@
 /* eslint-disable linebreak-style */
 const jwt = require('jsonwebtoken');
-const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
 const ConflictingRequest = require('../errors/ConflictingRequest');
+const Unauthorized = require('../errors/Unauthorized');
+
+const { JWT_SECRET = 'dev-key' } = process.env;
 
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'test-super-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
       res
         .cookie('jwt', token, {
@@ -23,9 +25,7 @@ module.exports.login = (req, res, next) => {
         .send({ message: 'Авторизация успешна' });
     })
     .catch((err) => {
-      res
-        .status(401)
-        .send({ message: err.message });
+      throw new Unauthorized(`Ошибка: ${err.message}`);
     })
     .catch(next);
 };
@@ -56,7 +56,6 @@ module.exports.createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
-  const validatorEmail = validator.isEmail(email);
 
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
@@ -66,16 +65,14 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => {
-      if (!validatorEmail) {
-        return res.status(400).send({ message: 'Неверно введен email' });
-      }
-      return res.status(201).send(user);
+    .then(() => {
+      User.findOne({ email })
+        .then((user) => res.status(201).send(user));
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new BadRequest('Ошибка валидации!');
-      } else if (err.name === 'MongoError' && err.code === 11000) {
+      } else if (err.name === 'MongoServerError' && err.code === 11000) {
         throw new ConflictingRequest('Данный E-mail уже используется другим пользователем!');
       }
     })
