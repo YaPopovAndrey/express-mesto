@@ -33,10 +33,10 @@ app.use(auth);
 
 app.use(router);
 app.use(routerCard);
-app.use(errors);
 app.use(() => {
   throw new NotFound('Страницы не существует');
 });
+app.use(errors);
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
