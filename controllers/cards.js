@@ -26,26 +26,27 @@ module.exports.createCard = (req, res, next) => {
 };
 
 module.exports.deleteCard = (req, res, next) => {
-  Card.findById(req.params.id)
-    .orFail(() => {
-      throw new NotFound('С данным ID карточек не обнаружено');
-    })
+  Card.findById(req.params.cardId)
     .then((card) => {
-      if (card.owner._id.toString() === req.user._id) {
-        Card.findByIdAndRemove(req.params.id)
-          .then((card) => {
-            res.send(card);
-          })
-          .catch((err) => {
-            if (err.name === 'CastError') {
-              throw new BadRequest('Невалидный id');
-            }
-          })
-          .catch(next);
-      } else {
+      if (card.owner !== req.user._id) {
         throw new Forbidden('Нельзя удалить чужую карточку');
       }
-      return res.status(200).send({ message: 'Карточка удалена' });
+    })
+    .then(() => {
+      Card.findByIdAndRemove(req.params.cardId, { new: true })
+        .then((card) => {
+          if (!card) {
+            throw new NotFound('С данным ID карточек не обнаружено');
+          } else {
+            res.status(200).send({ message: 'Карточка удалена' });
+          }
+        })
+        .catch((err) => {
+          if (err.name === 'CastError') {
+            throw new BadRequest('Невалидный id');
+          }
+        })
+        .catch(next);
     })
     .catch(next);
 };
